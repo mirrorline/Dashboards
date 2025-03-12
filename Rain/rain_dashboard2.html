@@ -1,0 +1,86 @@
+<!DOCTYPE html> 
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Dashboard</title>
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+</head>
+<body>
+    <h2>Upload JSON File</h2>
+    <input type="file" id="fileInput" accept=".json">
+    <div id="charts"></div>
+    
+    <script>
+        document.getElementById('fileInput').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        generateDashboard(data);
+                    } catch (error) {
+                        console.error("Invalid JSON format", error);
+                    }
+                };
+                reader.readAsText(file);
+            }
+        });
+        
+        function generateDashboard(data) {
+            const chartsContainer = document.getElementById('charts');
+            chartsContainer.innerHTML = "";  // Clear previous charts
+            
+            function addChartContainer(id) {
+                const div = document.createElement('div');
+                div.id = id;
+                div.style = "width:100%; height:400px;";
+                chartsContainer.appendChild(div);
+            }
+
+            const chartData = [
+                { id: "chart1", title: "Transplant Type Distribution", key: "graft_type", type: "bar" },
+                { id: "chart2", title: "Primary Disease Distribution", key: "prim_disease_hct", type: "bar" },
+                { id: "chart3", title: "HLA Matching Levels", key: "hla_high_res_6", type: "histogram" },
+                { id: "chart4", title: "EFS Time Distribution", key: "efs_time", type: "histogram" },
+                { id: "chart6", title: "Age Distribution", key: "age_at_hct", type: "histogram" }
+            ];
+
+            chartData.forEach(({ id, title, key, type }) => {
+                const values = data.map(d => d[key]).filter(x => x !== null && x !== undefined);
+                if (values.length > 0) {
+                    addChartContainer(id);
+                    createChart(id, title, type === "bar" ? [...new Set(values)] : values, type === "bar" ? values.map(v => values.filter(x => x === v).length) : null, type);
+                }
+            });
+
+            // Comorbidity Score vs EFS Scatter Plot
+            const comorbidityScores = data.map(d => ({ x: d.comorbidity_score, y: d.efs_time }))
+                                          .filter(d => d.x !== null && d.y !== null);
+            if (comorbidityScores.length > 0) {
+                addChartContainer("chart5");
+                createScatter("chart5", "Comorbidity Score vs EFS", comorbidityScores);
+            }
+
+            // Conditioning Intensity vs EFS Scatter Plot
+            const conditioningData = data.map(d => ({ x: d.conditioning_intensity, y: d.efs_time }))
+                                         .filter(d => d.x !== null && d.y !== null);
+            if (conditioningData.length > 0) {
+                addChartContainer("chart7");
+                createScatter("chart7", "Conditioning Intensity vs EFS", conditioningData);
+            }
+        }
+
+        function createChart(divId, title, xData, yData, type) {
+            const trace = { x: xData, y: yData, type: type };
+            Plotly.newPlot(divId, [trace], { title: title });
+        }
+        
+        function createScatter(divId, title, data) {
+            const trace = { x: data.map(d => d.x), y: data.map(d => d.y), mode: 'markers', type: 'scatter' };
+            Plotly.newPlot(divId, [trace], { title: title, xaxis: { title: 'X' }, yaxis: { title: 'Y' } });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Dashboard</title>
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+</head>
+<body>
+    <h2>Upload JSON File</h2>
+    <input type="file" id="fileInput" accept=".json">
+    <div id="charts"></div>
+    
+    <script>
+        document.getElementById('fileInput').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const data = JSON.parse(e.target.result);
+                    generateDashboard(data);
+                };
+                reader.readAsText(file);
+            }
+        });
+        
+        function generateDashboard(data) {
+            document.getElementById('charts').innerHTML = "";
+            
+            // Transplant Type Distribution
+            const graftCounts = {};
+            data.forEach(d => { graftCounts[d.graft_type] = (graftCounts[d.graft_type] || 0) + 1; });
+            Plotly.newPlot('charts', [{
+                type: 'bar', x: Object.keys(graftCounts), y: Object.values(graftCounts)
+            }], { title: 'Transplant Type Distribution' });
+            
+            // Add other charts dynamically here (similar approach)
+        }
+    </script>
+</body>
+</html>
